@@ -97,6 +97,8 @@ stl_files/            # 3D-printable enclosure parts
 |---|---|---|
 | `DISPLAY_MODE` | `local` | `local` for windowed, `pi` for fullscreen |
 | `CANVAS_SIZE` | `720` | Window size in pixels (square) |
+| `CUBE_SIZE_PX` | `460` | Pixel footprint of the beam splitter cube; calculate as `(cube_mm / screen_mm) * CANVAS_SIZE` |
+| `CUBE_MARGIN` | `10` | Margin in pixels inside the cube boundary; all content fits within `CUBE_SIZE_PX - 2 × CUBE_MARGIN` |
 | `SPOTIFY_CLIENT_ID` | — | Spotify app client ID |
 | `SPOTIFY_CLIENT_SECRET` | — | Spotify app client secret |
 | `SPOTIFY_REDIRECT_URI` | — | Must match the URI in your Spotify app settings |

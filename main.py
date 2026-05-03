@@ -11,6 +11,7 @@ _scene = None
 
 
 def settings():
+    """Configure the renderer and canvas size before the sketch starts."""
     if _DISPLAY_MODE == "pi":
         py5.full_screen(py5.P3D)
     else:
@@ -18,6 +19,7 @@ def settings():
 
 
 def setup():
+    """Initialize global sketch state and start the Spotify polling thread."""
     global _scene
     from scenes.spotify_scene import SpotifyScene
 
@@ -30,6 +32,7 @@ def setup():
 
 
 def draw():
+    """Delegate each frame to the active scene."""
     _scene.draw()
 
 

@@ -21,10 +21,13 @@ _SPIN_SPEED = 0.018  # radians per frame
 # Content midpoint sits 46.5px below the art center → shift art up by that amount.
 _ART_Y_OFFSET = int(46 * _UI_SCALE)
 
+# Shader selection: none | chromatic | fresnel | iridescent | scanlines
+_SHADER_MODE = os.getenv("SHADER", "none").lower()
+
 
 class SpotifyScene:
     def __init__(self):
-        """Set up Spotify client and initialise all rendering state."""
+        """Set up Spotify client, load the active shader, and initialise all rendering state."""
         self._spotify = SpotifyClient()
         self._album_img = None
         self._cached_track_id = None
@@ -32,10 +35,32 @@ class SpotifyScene:
         self._pending_art_path = None
         self._idle_art = py5.load_image("assets/spotify_idle.png")
         self._angle = 0.0
+        self._shader = self._load_shader()
 
     def setup(self):
         """Start the Spotify polling thread. Called once after the sketch is ready."""
         self._spotify.start_polling()
+
+    def _load_shader(self):
+        """Load the GLSL shader selected by the SHADER env var, or return None for no shader.
+
+        Shaders are applied via py5.filter() as a full-frame post-process, which avoids
+        vertex shader compatibility issues with P3D textured geometry.
+        """
+        shaders = {
+            "chromatic":   "assets/shaders/chromatic.frag",
+            "fresnel":     "assets/shaders/fresnel.frag",
+            "iridescent":  "assets/shaders/iridescent.frag",
+            "scanlines":   "assets/shaders/scanlines.frag",
+        }
+        frag = shaders.get(_SHADER_MODE)
+        if frag is None:
+            return None
+        try:
+            return py5.load_shader(frag)
+        except Exception as e:
+            print(f"[shader] failed to load '{_SHADER_MODE}': {e}")
+            return None
 
     def draw(self):
         """Main draw loop — called every frame by py5."""
@@ -62,6 +87,11 @@ class SpotifyScene:
 
         if track:
             self._draw_track_info(track, w, h)
+
+        # Apply as a post-process filter after the full scene is rendered
+        if self._shader:
+            self._set_shader_uniforms()
+            py5.apply_filter(self._shader)
 
         self._angle += _SPIN_SPEED
 
@@ -142,6 +172,22 @@ class SpotifyScene:
         _quad((-s,  s,  d), ( s,  s,  d), ( s,  s, -d), (-s,  s, -d))  # bottom
 
         py5.pop_matrix()
+
+    def _set_shader_uniforms(self):
+        """Push per-frame uniform values to the active shader."""
+        if _SHADER_MODE == "chromatic":
+            self._shader.set("strength", 0.015)
+        elif _SHADER_MODE == "fresnel":
+            self._shader.set("angle", self._angle)
+            self._shader.set("power", 3.0)
+            self._shader.set("glowColor", 0.4, 0.6, 1.0)
+        elif _SHADER_MODE == "iridescent":
+            self._shader.set("angle", self._angle)
+            self._shader.set("time", self._angle)
+            self._shader.set("strength", 0.5)
+        elif _SHADER_MODE == "scanlines":
+            self._shader.set("density", 80.0)
+            self._shader.set("strength", 0.25)
 
     def _draw_track_info(self, track, w, h):
         """Render title, artist, and playback progress bar below the art."""
